@@ -1,0 +1,22 @@
+# Archives
+*.rar
+*.zip
+*.7z
+
+# Python
+__pycache__/
+*.pyc
+.env
+.venv/
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Environment variables
+.env
+Backend/.env

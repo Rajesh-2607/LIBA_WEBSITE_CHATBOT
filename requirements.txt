@@ -1,0 +1,9 @@
+requests
+beautifulsoup4
+PyMuPDF
+openai
+sentence-transformers
+faiss-cpu
+python-dotenv
+flask
+flask-cors

@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>Chat Bot - Bootsnipp.com</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <link href="css/custom.css" rel="stylesheet">
+    <script src="js/jquery-1.11.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="container">
+	<div class="row">
+	 <div id="Smallchat">
+    <div class="Layout Layout-open Layout-expand Layout-right" style="background-color: #3F51B5;color: rgb(255, 255, 255);opacity: 5;border-radius: 10px;">
+      <div class="Messenger_messenger">
+        <div class="Messenger_header" style="background-color: rgb(22, 46, 98); color: rgb(255, 255, 255);">
+          <h4 class="Messenger_prompt"><img src="imgs/liba-logo.png" alt="liba-logo" />LIBA -Bot</h4> <span class="chat_close_icon"><img src="imgs/close.png" alt="Close" /></div>
+        <div class="Messenger_content">
+          <div class="Messages">
+            <div class="Messages_list">
+              <div class="liba-support"><span class="liba-icon">L</span><span class="support-msg">Hey There! I am happy to answer any questions about LIBA.</span><span class="chat-time">07:00 PM</span></div>
+              
+            </div>
+          </div>
+          <div class="Input Input-blank">
+            <textarea class="Input_field" placeholder="Send a message..." style="height: 20px;"></textarea>
+            <button class="Input_button Input_button-emoji">
+              <div class="Icon" style="width: 18px; height: 18px;">
+                <img src="imgs/smile.png" alt="emoji" />
+              </div>
+            </button>
+            <button class="Input_button Input_button-send">
+              <div class="Icon" style="width: 18px; height: 18px;">
+                <img src="imgs/message.png" alt="send" />
+              </div>
+            </button>
+            <div class="emoji-picker" style="display: none;">
+    <span>😀</span> <span>😃</span> <span>😄</span> <span>😁</span>
+    <span>😆</span> <span>😅</span> <span>😂</span> <span>🤣</span>
+    <span>😊</span> <span>😇</span> <span>😉</span> <span>😍</span>
+    <span>🤩</span> <span>😜</span> <span>😎</span> <span>😢</span>
+    <span>😡</span> <span>❤️</span> <span>🙌</span> <span>🎉</span>
+  </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!--===============CHAT ON BUTTON STRART===============-->
+    <button class="chat_on">
+      <img src="imgs/chat.png" alt="chat" class="chat-icon" />
+      <span>Chat with us</span>
+      <img src="imgs/chat-close.png" alt="chat" class="chat-close-icon" style="display: none; width: 15px; margin-right: 0px;" />
+    </button>
+    <!--===============CHAT ON BUTTON END===============-->
+  </div>
+	</div>
+</div>	<script type="text/javascript">
+	
+// CHAT BOOT MESSENGER////////////////////////
+
+$(document).ready(function(){
+    $(".chat_on").on("click", function(){
+        $(".Layout").stop(true, true).toggle(300);
+       // $(this).stop(true, true).hide(300);
+       $(".chat-icon, .chat_on span").toggle();
+       $(".chat-close-icon").toggle();
+    });
+
+    $(".chat_close_icon").on("click", function(){
+        $(".Layout").stop(true, true).hide(300);
+        //$(".chat_on").stop(true, true).show(300);
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  const textarea = document.querySelector('.Input_field');
+  const sendButton = document.querySelector('.Input_button-send');
+  const messagesList = document.querySelector('.Messages_list');
+  const messagesContainer = document.querySelector('.Messages');
+  const emojiBtn = document.querySelector('.Input_button-emoji');
+  const emojiPicker = document.querySelector('.emoji-picker');
+
+  function sendMessage(type = 'customer', messageText = null) {
+    const text = messageText || textarea.value.trim();
+    if (text === '') return;
+
+    const messageDiv = document.createElement('div');
+    const msgSpan = document.createElement('span');
+    const timeSpan = document.createElement('span');
+
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    timeSpan.className = 'chat-time';
+    timeSpan.textContent = timeString;
+
+    msgSpan.className = 'support-msg highlight-message';
+    msgSpan.textContent = text;
+
+    if (type === 'customer') {
+      messageDiv.className = 'customer-support';
+      messageDiv.appendChild(msgSpan);
+      messageDiv.appendChild(timeSpan);
+    } else if (type === 'liba') {
+      messageDiv.className = 'liba-support';
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'liba-icon';
+      iconSpan.textContent = 'L';
+
+      messageDiv.appendChild(iconSpan);
+      messageDiv.appendChild(msgSpan);
+      messageDiv.appendChild(timeSpan);
+    }
+
+    messageDiv.style.position = 'relative'; // required for ::after tail
+    messagesList.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    if (type === 'customer') {
+      textarea.value = '';
+      textarea.style.height = '20px';
+
+      // Simulate a LIBA reply after 1 second
+      fetch('http://127.0.0.1:5001/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ message: text }),
+})
+.then(response => response.json())
+.then(data => {
+  if (data.reply) {
+    sendMessage('liba', data.reply);
+  } else {
+    sendMessage('liba', 'Sorry, something went wrong.');
+  }
+})
+.catch(error => {
+  console.error('Error:', error);
+  sendMessage('liba', 'Server error. Please try again later.');
+});
+    }
+
+    setTimeout(() => {
+      msgSpan.classList.remove('highlight-message');
+    }, 1000);
+  }
+
+  sendButton.addEventListener('click', () => sendMessage('customer'));
+
+  textarea.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage('customer');
+    }
+  });
+
+  // Emoji picker toggle
+  emojiBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
+  });
+
+  emojiPicker.addEventListener('click', function (e) {
+    if (e.target.tagName === 'SPAN') {
+      const emoji = e.target.textContent;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const current = textarea.value;
+      textarea.value = current.substring(0, start) + emoji + current.substring(end);
+      textarea.focus();
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+    }
+  });
+
+  // Hide emoji picker on outside click
+  document.addEventListener('click', () => {
+    emojiPicker.style.display = 'none';
+  });
+});
+
+</script>
+</body>
+</html>
