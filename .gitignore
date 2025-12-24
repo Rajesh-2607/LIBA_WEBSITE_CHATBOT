@@ -1,22 +1,7 @@
-# Archives
-*.rar
-*.zip
-*.7z
-
-# Python
+.env
+*.pdf
+*.docx
+*.xlsx
+*.pkl
+*.faiss
 __pycache__/
-*.pyc
-.env
-.venv/
-
-# Editors
-.vscode/
-.idea/
-
-# OS
-Thumbs.db
-desktop.ini
-
-# Environment variables
-.env
-Backend/.env
