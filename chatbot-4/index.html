@@ -137,8 +137,8 @@ document.addEventListener('DOMContentLoaded', function () {
 })
 .then(response => response.json())
 .then(data => {
-  if (data.reply) {
-    sendMessage('liba', data.reply);
+  if (data.response) {
+    sendMessage('liba', data.response);
   } else {
     sendMessage('liba', 'Sorry, something went wrong.');
   }

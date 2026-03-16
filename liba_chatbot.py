@@ -1,78 +1,66 @@
 import os
-import faiss
 import pickle
 from sentence_transformers import SentenceTransformer
-from sklearn.preprocessing import normalize
-import openai
+import numpy as np
+from openai import OpenAI
 from dotenv import load_dotenv
+import faiss
+import config
 
-# Load environment variables
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-openai.api_key = api_key
-client = openai.OpenAI()
 
-# Load SentenceTransformer model once
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load FAISS index and metadata once at startup
-INDEX_FILE = "college_index.faiss"
-METADATA_FILE = "college_metadata.pkl"
+# Load the FAISS index and metadata
+try:
+    index = faiss.read_index(config.INDEX_PATH)
+    with open(config.METADATA_PATH, "rb") as f:
+        texts = pickle.load(f)
+except FileNotFoundError:
+    print("Error: Index or metadata file not found.")
+    print("Please run the `build.py` script first to create the vector store.")
+    exit()
 
-print("Loading FAISS index and metadata...")
-index = faiss.read_index(INDEX_FILE)
-with open(METADATA_FILE, "rb") as f:
-    metadata = pickle.load(f)
+# Load the sentence transformer model
+model = SentenceTransformer(config.EMBEDDING_MODEL)
 
-# Handle different formats of metadata
-if isinstance(metadata, tuple) and len(metadata) == 2:
-    # Old format: (documents, metadatas)
-    documents, metadatas = metadata
-elif isinstance(metadata, list) and isinstance(metadata[0], dict):
-    # New format: list of dicts with filename, chunk, and content
-    documents = [m["text"] for m in metadata]
-    metadatas = metadata
-else:
-    raise ValueError("❌ Unexpected metadata format in pickle file")
+def answer_query(user_query):
+    # Encode the user's query
+    query_embedding = model.encode([user_query])
 
-print(f"FAISS index loaded with {index.ntotal} vectors")
-print(f"Metadata loaded with {len(documents)} chunks")
+    # Perform similarity search
+    D, I = index.search(np.array(query_embedding).astype("float32"), k=config.FAISS_TOP_K)
 
-def answer_query(query, k=10, model_name="gpt-4o"):
-    # Generate query embedding and normalize
-    q_embedding = model.encode([query], convert_to_numpy=True)
-    q_embedding = normalize(q_embedding, axis=1)
-
-    # Search FAISS index for top-k relevant chunks
-    D, I = index.search(q_embedding, k)
-    relevant_chunks = [documents[i] for i in I[0]]
-
-    # Combine relevant chunks as context
-    context = "\n\n".join(relevant_chunks)
+    # Get the most relevant text chunks
+    relevant_texts = [texts[i] for i in I[0]]
+    
+    # Create the prompt for the language model
+    prompt = (
+        "You are a helpful, conversational and optimistic assistant for LIBA, a Jesuit Business School's website. "
+        "Use the context provided to answer user queries positively and informatively but while responding do not mention refer to “the provided context”, “the documents”, or any source. "
+        "If a document contains mixed or negative content, highlight only the constructive or commendable aspects. "
+        "Reframe mildly negative details in a diplomatic and encouraging manner, emphasizing LIBA’s strengths, values, and continuous improvement. "
+        "If the answer is not directly stated, infer it logically based on context. "
+        "Do not say \"no information\" unless it's clearly and entirely absent. "
+        "Give directions to contact LIBA incase for further details when needed."
+    )
 
     # Prepare prompt messages for OpenAI chat completion
     messages = [
         {
             "role": "system",
-            "content": (
-                "You are a helpful, conversational and optimistic assistant for LIBA, a Jesuit Business School's website. "
-                "Use the context provided to answer user queries positively and informatively but while responding do not mention refer to “the provided context”, “the documents”, or any source. "
-                "If a document contains mixed or negative content, highlight only the constructive or commendable aspects. "
-                "Reframe mildly negative details in a diplomatic and encouraging manner, emphasizing LIBA’s strengths, values, and continuous improvement. "
-                "If the answer is not directly stated, infer it logically based on context. "
-                "Do not say \"no information\" unless it's clearly and entirely absent. "
-                "Give directions to contact LIBA incase for further details when needed.""Give me the answer in two or three lines."
-            )
+            "content": prompt
         },
         {
             "role": "user",
-            "content": f"### CONTEXT:\n{context}\n\n### QUESTION:\n{query}"
+            "content": f"### CONTEXT:\n{relevant_texts}\n\n### QUESTION:\n{user_query}"
         }
     ]
 
     # Call OpenAI chat completion
     response = client.chat.completions.create(
-        model=model_name,
+        model=config.LLM_MODEL,
         messages=messages,
         temperature=0.5
     )
